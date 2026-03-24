@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS logins (
   INDEX idx_username (username)
 );
 
-CREATE USER IF NOT EXISTS 'app_user'@'localhost' IDENTIFIED BY 'AppPass!2024';
+CREATE USER IF NOT EXISTS 'app_user'@'localhost' IDENTIFIED WITH mysql_native_password BY 'AppPass!2024';
 GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'app_user'@'localhost';
+
+-- Replace <opa_admin_password> with the actual password before running locally
+CREATE USER IF NOT EXISTS 'opa_admin'@'%' IDENTIFIED WITH mysql_native_password BY '<opa_admin_password>';
+GRANT ALL PRIVILEGES ON employee_directory.* TO 'opa_admin'@'%';
 FLUSH PRIVILEGES;
