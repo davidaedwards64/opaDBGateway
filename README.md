@@ -55,7 +55,51 @@ project_name  = "my-opa-gateway"
 
 ## Build and Deploy
 
-### 1. Initialise Terraform
+### 1. Configure AWS credentials
+
+Terraform uses the standard AWS credential chain. Choose one of the following methods:
+
+**Option A — AWS CLI (recommended):**
+
+```bash
+aws configure
+```
+
+You will be prompted for:
+
+```
+AWS Access Key ID:     <your-access-key-id>
+AWS Secret Access Key: <your-secret-access-key>
+Default region name:   us-west-2
+Default output format: json
+```
+
+Credentials are written to `~/.aws/credentials` and reused by Terraform automatically.
+
+**Option B — Environment variables:**
+
+```bash
+export AWS_ACCESS_KEY_ID="<your-access-key-id>"
+export AWS_SECRET_ACCESS_KEY="<your-secret-access-key>"
+export AWS_DEFAULT_REGION="us-west-2"
+```
+
+**Required IAM permissions:**
+
+The credentials must allow the following actions:
+
+- `ec2:RunInstances`, `ec2:DescribeInstances`, `ec2:TerminateInstances`
+- `ec2:CreateKeyPair`, `ec2:DeleteKeyPair`, `ec2:DescribeKeyPairs`
+- `ec2:CreateSecurityGroup`, `ec2:DeleteSecurityGroup`, `ec2:AuthorizeSecurityGroupIngress`, `ec2:AuthorizeSecurityGroupEgress`, `ec2:DescribeSecurityGroups`
+- `ec2:DescribeImages`
+
+Verify your credentials are working before proceeding:
+
+```bash
+aws sts get-caller-identity
+```
+
+### 2. Initialise Terraform
 
 ```bash
 cd terraform
@@ -64,13 +108,13 @@ terraform init
 
 Downloads the `hashicorp/aws` (~> 5.0) and `hashicorp/tls` (~> 4.0) providers.
 
-### 2. Preview the changes
+### 3. Preview the changes
 
 ```bash
 terraform plan
 ```
 
-### 3. Apply
+### 4. Apply
 
 ```bash
 terraform apply
@@ -89,7 +133,7 @@ Terraform will create:
 
 Allow 2–3 minutes after `apply` completes for `user_data.sh` to finish.
 
-### 4. Retrieve the SSH key and connect
+### 5. Retrieve the SSH key and connect
 
 ```bash
 # Write the private key to disk
@@ -106,7 +150,7 @@ Then connect:
 ssh -i ../ssh_key.pem ubuntu@<instance_public_ip>
 ```
 
-### 5. Verify the database
+### 6. Verify the database
 
 ```bash
 sudo mysql -u root -e "SELECT COUNT(*) FROM employee_directory.employees;"
@@ -122,7 +166,7 @@ sudo mysql -u root -e "
   LIMIT 5;"
 ```
 
-### 6. Check provisioning logs
+### 7. Check provisioning logs
 
 If the database is not ready, inspect the cloud-init log:
 
@@ -148,7 +192,7 @@ The OPA agent requires a tenant-specific enrollment token that can only be obtai
 1. Log in to the Okta admin console and navigate to **Privileged Access > Infrastructure > Servers**.
 2. Select or create a Server Group for this instance.
 3. Generate an enrollment token for the group.
-4. SSH into the instance (see step 4 above).
+4. SSH into the instance (see step 5 above).
 5. Install the OPA server agent (refer to current [Okta documentation](https://help.okta.com/opa/en-us/content/topics/privileged-access/opa-main.htm) for the package URL):
 
    ```bash
