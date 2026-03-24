@@ -37,14 +37,15 @@ AWS credentials must have permission to create EC2 instances, key pairs, and sec
 
 ## Configuration
 
-Most variables have defaults and can be overridden on the command line or in a `terraform.tfvars` file. `opa_admin_password` has no default and will be prompted interactively at `apply` time.
+Most variables have defaults and can be overridden on the command line or in a `terraform.tfvars` file. `opa_admin_password` and `setup_token` have no defaults and will be prompted interactively at `apply` time.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `aws_region` | `us-west-2` | AWS region to deploy into |
 | `instance_type` | `t2.micro` | EC2 instance type |
 | `project_name` | `opa-dae-db-gateway` | Name prefix applied to all resources |
-| `opa_admin_password` | *(prompted)* | Password for the `opa_admin` MySQL user — sensitive, never stored in state in plaintext |
+| `opa_admin_password` | *(prompted)* | Password for the `opa_admin` MySQL user — sensitive |
+| `setup_token` | *(prompted)* | OPA gateway setup token from the Okta admin console — sensitive |
 
 Example `terraform.tfvars`:
 
@@ -54,7 +55,7 @@ instance_type = "t3.small"
 project_name  = "my-opa-gateway"
 ```
 
-> `opa_admin_password` should not be placed in `terraform.tfvars` to avoid committing it to source control. Supply it at the prompt or via the `TF_VAR_opa_admin_password` environment variable.
+> `opa_admin_password` and `setup_token` should not be placed in `terraform.tfvars` to avoid committing them to source control. Supply them at the prompt or via the `TF_VAR_opa_admin_password` and `TF_VAR_setup_token` environment variables.
 
 ## Build and Deploy
 
@@ -123,22 +124,33 @@ terraform plan
 terraform apply
 ```
 
-Terraform will prompt for the `opa_admin` MySQL password before making any changes:
+Terraform will prompt for two sensitive values before making any changes:
 
 ```
 var.opa_admin_password
   Password for the opa_admin MySQL user (prompted at apply time)
 
   Enter a value: ********
+
+var.setup_token
+  OPA gateway setup token (prompted at apply time)
+
+  Enter a value: ********
 ```
+
+Obtain the setup token from the Okta admin console before running `apply` (**Privileged Access > Infrastructure > Servers** — select or create a Server Group and generate an enrollment token).
 
 Terraform will create:
 - A 4096-bit RSA key pair
 - A security group (SSH open; MySQL self-referencing only)
 - An EC2 instance running the latest Ubuntu 22.04 Jammy AMI
-- A file transfer that copies `scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb` to `/home/ubuntu/` on the instance via SSH
 
-`user_data.sh` runs automatically on first boot and:
+After the instance is reachable over SSH, Terraform will automatically:
+1. Copy and install the OPA gateway package (`sudo dpkg -i`)
+2. Place `sft-gatewayd.yaml` at `/etc/sft/sft-gatewayd.yaml`
+3. Write the setup token to `/var/lib/sft-gatewayd/setup.token`
+
+`user_data.sh` runs on first boot and:
 1. Updates the system packages
 2. Sets `mysql_native_password` as the server-wide default authentication plugin
 3. Installs and starts MySQL
@@ -187,8 +199,12 @@ sudo mysql -u root -e "
   WHERE user IN ('app_user', 'opa_admin');"
 # Expected: both rows show mysql_native_password
 
-# Confirm the .deb package was delivered
-ls -lh ~/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb
+# Confirm the gateway package was installed
+dpkg -l | grep scaleft-gateway
+
+# Confirm config and token files are in place
+sudo ls -lh /etc/sft/sft-gatewayd.yaml
+sudo ls -lh /var/lib/sft-gatewayd/setup.token
 ```
 
 ### 7. Check provisioning logs
@@ -210,31 +226,40 @@ sudo tail -f /var/log/user_data.log
 
 ## OPA Server Agent Enrollment
 
-The OPA agent requires a tenant-specific enrollment token that can only be obtained from the Okta admin console, so it cannot be automated at provisioning time.
+`terraform apply` fully automates the gateway installation and configuration:
 
-**Steps after the instance is running:**
+- The gateway package is installed via `dpkg`
+- `sft-gatewayd.yaml` is placed at `/etc/sft/sft-gatewayd.yaml`
+- The setup token is written to `/var/lib/sft-gatewayd/setup.token`
+
+The `sft-gatewayd` service reads the token file on start and uses it to enroll automatically with the Okta tenant.
+
+**Before running `terraform apply`:**
 
 1. Log in to the Okta admin console and navigate to **Privileged Access > Infrastructure > Servers**.
 2. Select or create a Server Group for this instance.
-3. Generate an enrollment token for the group.
-4. SSH into the instance (see step 5 above).
-5. Install the OPA server agent. The `.deb` package is copied to `/home/ubuntu/` automatically during `terraform apply`:
+3. Generate an enrollment token for the group — this is the value to supply at the `var.setup_token` prompt.
+
+**After `terraform apply` completes:**
+
+1. SSH into the instance:
 
    ```bash
-   sudo dpkg -i ~/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb
+   terraform output ssh_connection_command
+   ssh -i ../ssh_key.pem ubuntu@<instance_public_ip>
    ```
 
-6. Enroll the agent:
+2. Start the gateway service:
 
    ```bash
-   sudo sft enroll --url https://<your-okta-tenant>.okta.com \
-     --enrollment-token <ENROLLMENT_TOKEN>
+   sudo systemctl start sft-gatewayd
+   sudo systemctl enable sft-gatewayd
    ```
 
-7. Verify the agent is connected:
+3. Verify the agent enrolled successfully:
 
    ```bash
-   sudo systemctl status sftd
+   sudo systemctl status sft-gatewayd
    ```
 
 Once enrolled, the instance will appear in the OPA dashboard and database sessions can be brokered through Okta Privileged Access.
