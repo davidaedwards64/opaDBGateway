@@ -1,0 +1,18 @@
+# Truncated sft-gatewayd.yaml file for DB integration testing
+#
+SetupTokenFile: /var/lib/sft-gatewayd/setup.token
+# Logging
+LogLevel: debug
+# TLS - Use system CAs
+TLSUseBundledCAs: true
+# RDP Support
+RDP:
+  Enabled: false
+  DangerouslyIgnoreServerCertificates: false
+  MaximumActiveSessions: 20
+  VerboseLogging: true
+# Orchestrator
+Orchestrator:
+  Enabled: true
+  BinaryPath: /usr/sbin/sft-orchestrator
+  DryRun: false
