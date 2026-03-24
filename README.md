@@ -180,7 +180,7 @@ Then connect:
 ssh -i ../ssh_key.pem ubuntu@<instance_public_ip>
 ```
 
-### 6. Verify the database
+### 6. Verify the database and gateway
 
 ```bash
 sudo mysql -u root -e "SELECT COUNT(*) FROM employee_directory.employees;"
