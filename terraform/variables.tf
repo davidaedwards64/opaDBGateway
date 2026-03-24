@@ -21,3 +21,9 @@ variable "opa_admin_password" {
   type        = string
   sensitive   = true
 }
+
+variable "setup_token" {
+  description = "OPA gateway setup token (prompted at apply time)"
+  type        = string
+  sensitive   = true
+}

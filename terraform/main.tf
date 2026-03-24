@@ -90,14 +90,41 @@ resource "null_resource" "copy_gateway_deb" {
     host        = aws_instance.opa_db_gateway.public_ip
   }
 
-  # Wait for SSH to be ready before copying
+  # Wait for SSH to be ready
   provisioner "remote-exec" {
     inline = ["echo 'SSH ready'"]
   }
 
+  # Copy the gateway .deb package
   provisioner "file" {
-    source      = "../scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb"
+    source      = "${path.module}/files/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb"
     destination = "/home/ubuntu/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb"
+  }
+
+  # Install the gateway package
+  provisioner "remote-exec" {
+    inline = ["sudo dpkg -i /home/ubuntu/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb"]
+  }
+
+  # Stage gateway config and setup token (file provisioner runs as ubuntu;
+  # files are moved to root-owned locations by the remote-exec below)
+  provisioner "file" {
+    source      = "${path.module}/files/sft-gatewayd.yaml"
+    destination = "/home/ubuntu/sft-gatewayd.yaml"
+  }
+
+  provisioner "file" {
+    content     = var.setup_token
+    destination = "/home/ubuntu/setup.token"
+  }
+
+  # Move config and token to their final locations
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mkdir -p /etc/sft",
+      "sudo mv /home/ubuntu/sft-gatewayd.yaml /etc/sft/sft-gatewayd.yaml",
+      "sudo mv /home/ubuntu/setup.token /var/lib/sft-gatewayd/setup.token",
+    ]
   }
 
   depends_on = [aws_instance.opa_db_gateway]
