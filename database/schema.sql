@@ -1,0 +1,21 @@
+CREATE DATABASE IF NOT EXISTS employee_directory;
+USE employee_directory;
+
+CREATE TABLE IF NOT EXISTS employees (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  first_name  VARCHAR(100) NOT NULL,
+  last_name   VARCHAR(100) NOT NULL,
+  email       VARCHAR(150) UNIQUE NOT NULL,
+  phone       VARCHAR(20),
+  department  VARCHAR(100),
+  job_title   VARCHAR(150),
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_last_name (last_name),
+  INDEX idx_email (email),
+  INDEX idx_department (department)
+);
+
+CREATE USER IF NOT EXISTS 'app_user'@'localhost' IDENTIFIED BY 'AppPass!2024';
+GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'app_user'@'localhost';
+FLUSH PRIVILEGES;
