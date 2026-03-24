@@ -15,3 +15,9 @@ variable "project_name" {
   type        = string
   default     = "opa-dae-db-gateway"
 }
+
+variable "opa_admin_password" {
+  description = "Password for the opa_admin MySQL user (prompted at apply time)"
+  type        = string
+  sensitive   = true
+}

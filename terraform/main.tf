@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -69,9 +73,32 @@ resource "aws_instance" "opa_db_gateway" {
   key_name               = aws_key_pair.deployer.key_name
   vpc_security_group_ids = [aws_security_group.opa_db_gateway.id]
 
-  user_data = file("${path.module}/user_data.sh")
+  user_data = templatefile("${path.module}/user_data.sh", {
+    opa_admin_password = var.opa_admin_password
+  })
 
   tags = {
     Name = "opa-dae-db-gateway"
   }
+}
+
+resource "null_resource" "copy_gateway_deb" {
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = tls_private_key.deployer.private_key_pem
+    host        = aws_instance.opa_db_gateway.public_ip
+  }
+
+  # Wait for SSH to be ready before copying
+  provisioner "remote-exec" {
+    inline = ["echo 'SSH ready'"]
+  }
+
+  provisioner "file" {
+    source      = "../scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb"
+    destination = "/home/ubuntu/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb"
+  }
+
+  depends_on = [aws_instance.opa_db_gateway]
 }

@@ -10,6 +10,10 @@ apt-get upgrade -y
 # ── Install MySQL ─────────────────────────────────────────────────────────────
 apt-get install -y mysql-server
 
+# ── Configure MySQL authentication plugin ────────────────────────────────────
+echo "default_authentication_plugin=mysql_native_password" \
+  >> /etc/mysql/mysql.conf.d/mysqld.cnf
+
 # ── Start and enable MySQL ────────────────────────────────────────────────────
 systemctl start mysql
 systemctl enable mysql
@@ -46,8 +50,11 @@ CREATE TABLE IF NOT EXISTS logins (
   INDEX idx_username (username)
 );
 
-CREATE USER IF NOT EXISTS 'app_user'@'localhost' IDENTIFIED BY 'AppPass!2024';
+CREATE USER IF NOT EXISTS 'app_user'@'localhost' IDENTIFIED WITH mysql_native_password BY 'AppPass!2024';
 GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'app_user'@'localhost';
+
+CREATE USER IF NOT EXISTS 'opa_admin'@'%' IDENTIFIED WITH mysql_native_password BY '${opa_admin_password}';
+GRANT ALL PRIVILEGES ON employee_directory.* TO 'opa_admin'@'%';
 FLUSH PRIVILEGES;
 SQL
 
