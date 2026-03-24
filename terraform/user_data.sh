@@ -7,6 +7,9 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get upgrade -y
 
+# ── Hosts file ───────────────────────────────────────────────────────────────
+echo "127.0.0.1 local-mysql" >> /etc/hosts
+
 # ── Install MySQL ─────────────────────────────────────────────────────────────
 apt-get install -y mysql-server
 
