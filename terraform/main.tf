@@ -50,7 +50,7 @@ resource "aws_security_group" "opa_db_gateway" {
   }
 
   egress {
-    description = "Allow all outbound — required for OPA agent to reach Okta cloud"
+    description = "Allow all outbound - required for OPA agent to reach Okta cloud"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
