@@ -157,8 +157,9 @@ After the instance is reachable over SSH, Terraform will automatically:
 2. Sets `mysql_native_password` as the server-wide default authentication plugin
 3. Installs and starts MySQL
 4. Creates the `employee_directory` database with `employees` and `logins` tables
-5. Creates `app_user@localhost` and `opa_admin@'%'` using `mysql_native_password`
-6. Inserts 15 sample employee records and derives matching login credentials
+5. Creates `app_user@localhost`, `opa_admin@'%'`, `dbaone@'%'`, and `dbatwo@'%'` using `mysql_native_password`
+6. Grants `opa_admin` global `CREATE USER` privilege (required for OPA user management)
+7. Inserts 15 sample employee records and derives matching login credentials
 
 Allow 2–3 minutes after `apply` completes for `user_data.sh` to finish.
 
@@ -194,12 +195,20 @@ sudo mysql -u root -e "
   JOIN employee_directory.employees e ON l.employee_id = e.id
   LIMIT 5;"
 
-# Confirm both users were created with mysql_native_password
+# Confirm all users were created with mysql_native_password
 sudo mysql -u root -e "
   SELECT user, host, plugin
   FROM mysql.user
-  WHERE user IN ('app_user', 'opa_admin');"
-# Expected: both rows show mysql_native_password
+  WHERE user IN ('app_user', 'opa_admin', 'dbaone', 'dbatwo');"
+# Expected: all four rows show mysql_native_password
+
+# Confirm opa_admin has global CREATE USER privilege
+sudo mysql -u root -e "SHOW GRANTS FOR 'opa_admin'@'%';"
+# Expected: includes GRANT CREATE USER ON *.* and GRANT ALL ON employee_directory.*
+
+# Confirm dbaone and dbatwo grants
+sudo mysql -u root -e "SHOW GRANTS FOR 'dbaone'@'%'; SHOW GRANTS FOR 'dbatwo'@'%';"
+# Expected: SELECT, INSERT, UPDATE, DELETE on employee_directory.*
 
 # Confirm the gateway package was installed
 dpkg -l | grep scaleft-gateway
@@ -297,12 +306,14 @@ Once enrolled, the instance will appear in the OPA dashboard and database sessio
 | `created_at` | TIMESTAMP | |
 | `updated_at` | TIMESTAMP | Auto-updated |
 
-Both MySQL users are created with `mysql_native_password` for OPA gateway compatibility:
+All MySQL users are created with `mysql_native_password` for OPA gateway compatibility:
 
 | User | Host | Privileges |
 |------|------|------------|
 | `app_user` | `localhost` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
-| `opa_admin` | `%` | ALL PRIVILEGES on `employee_directory.*` — used by the OPA agent |
+| `opa_admin` | `%` | ALL PRIVILEGES on `employee_directory.*`; CREATE USER on `*.*` — used by the OPA agent |
+| `dbaone` | `%` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
+| `dbatwo` | `%` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
 
 ## Teardown
 
