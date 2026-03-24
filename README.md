@@ -208,25 +208,6 @@ sudo tail -f /var/log/user_data.log
 | `ssh_private_key` | Generated private key (sensitive) |
 | `ssh_connection_command` | Ready-to-use SSH command |
 
-## Local Database Setup (optional)
-
-`database/schema.sql` contains the full schema and user creation statements for running MySQL locally without Terraform. Before executing it, replace the placeholder password for `opa_admin`:
-
-```bash
-# Edit the placeholder, then apply
-sed 's/<opa_admin_password>/your-password-here/' database/schema.sql | mysql -u root -p
-```
-
-Or open `database/schema.sql`, replace `<opa_admin_password>` manually, then run:
-
-```bash
-mysql -u root -p < database/schema.sql
-```
-
-> `mysql_native_password` must be the active authentication plugin on your local MySQL instance for the `CREATE USER` statements to succeed. Add `default_authentication_plugin=mysql_native_password` to your local `mysqld.cnf` if needed.
-
----
-
 ## OPA Server Agent Enrollment
 
 The OPA agent requires a tenant-specific enrollment token that can only be obtained from the Okta admin console, so it cannot be automated at provisioning time.
@@ -256,31 +237,7 @@ The OPA agent requires a tenant-specific enrollment token that can only be obtai
    sudo systemctl status sftd
    ```
 
-Once enrolled, the instance will appear in the OPA dashboard. Complete the database configuration below before brokered sessions will work.
-
-## OPA Database Configuration
-
-After the server agent is enrolled, configure OPA to proxy database sessions through it:
-
-1. In the Okta admin console navigate to **Privileged Access > Infrastructure > Databases**.
-2. Click **Add database** and select **MySQL** as the database type.
-3. Set the connection details:
-
-   | Field | Value |
-   |-------|-------|
-   | Host | `127.0.0.1` |
-   | Port | `3306` |
-   | Database | `employee_directory` |
-   | Username | `opa_admin` |
-   | Password | *(the value supplied as `opa_admin_password` at `terraform apply` time)* |
-
-   Using `127.0.0.1` ensures the OPA agent connects locally on the instance — port 3306 is not exposed to the internet.
-
-4. Associate the database resource with the same Server Group used during agent enrollment.
-5. Assign database access policies (users or groups who may request sessions).
-6. Test the connection from the OPA console to confirm `opa_admin` can authenticate.
-
-Once configured, authorised users can request brokered database sessions through Okta Privileged Access without requiring direct credentials to the MySQL instance.
+Once enrolled, the instance will appear in the OPA dashboard and database sessions can be brokered through Okta Privileged Access.
 
 ## Database Schema
 
