@@ -1,0 +1,47 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+terraform.tfvars
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# SSH keys
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Environment / secrets
+.env
+.env.*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
