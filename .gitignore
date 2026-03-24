@@ -15,6 +15,9 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+# Debian packages
+*.deb
+
 # SSH keys
 *.pem
 *.key
