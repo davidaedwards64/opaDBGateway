@@ -16,3 +16,10 @@ INSERT INTO employees (first_name, last_name, email, phone, department, job_titl
 ('Jessica', 'Lee',       'jessica.lee@example.com',     '555-201-1013', 'IT',           'Systems Administrator'),
 ('Brian',   'Martinez',  'brian.martinez@example.com',  '555-201-1014', 'Finance',      'Controller'),
 ('Amanda',  'Wilson',    'amanda.wilson@example.com',   '555-201-1015', 'Marketing',    'Content Strategist');
+
+INSERT INTO logins (employee_id, username, fullname, password)
+SELECT id,
+       email,
+       CONCAT(first_name, ' ', last_name),
+       LEFT(MD5(UUID()), 16)
+FROM employees;

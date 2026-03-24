@@ -16,6 +16,18 @@ CREATE TABLE IF NOT EXISTS employees (
   INDEX idx_department (department)
 );
 
+CREATE TABLE IF NOT EXISTS logins (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  employee_id INT NOT NULL,
+  username    VARCHAR(150) UNIQUE NOT NULL,
+  fullname    VARCHAR(201) NOT NULL,
+  password    VARCHAR(64)  NOT NULL,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  INDEX idx_username (username)
+);
+
 CREATE USER IF NOT EXISTS 'app_user'@'localhost' IDENTIFIED BY 'AppPass!2024';
 GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'app_user'@'localhost';
 FLUSH PRIVILEGES;
