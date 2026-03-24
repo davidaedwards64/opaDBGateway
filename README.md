@@ -138,7 +138,7 @@ var.setup_token
   Enter a value: ********
 ```
 
-Obtain the setup token from the Okta admin console before running `apply` (**Privileged Access > Infrastructure > Servers** — select or create a Server Group and generate an enrollment token).
+Obtain the gateway setup token from the Okta admin console before running `apply` — see [OPA Server Agent Enrollment](#opa-server-agent-enrollment) below for the full steps.
 
 Terraform will create:
 - A 4096-bit RSA key pair
@@ -234,11 +234,14 @@ sudo tail -f /var/log/user_data.log
 
 The `sft-gatewayd` service reads the token file on start and uses it to enroll automatically with the Okta tenant.
 
-**Before running `terraform apply`:**
+**Before running `terraform apply`**, generate a gateway setup token:
 
-1. Log in to the Okta admin console and navigate to **Privileged Access > Infrastructure > Servers**.
-2. Select or create a Server Group for this instance.
-3. Generate an enrollment token for the group — this is the value to supply at the `var.setup_token` prompt.
+1. Log in to the Okta admin console and navigate to **Resource Administration > Gateways**.
+2. Click **Set up gateway**, then **Create setup token**.
+3. Enter a token name.
+4. Optionally add one or more labels as key-value pairs (e.g. `environment:staging`), pressing Tab or Enter after each.
+5. Click **Save**.
+6. Copy the token and click **Done** — this is the value to supply at the `var.setup_token` prompt. It is only shown once.
 
 **After `terraform apply` completes:**
 
