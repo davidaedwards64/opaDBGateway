@@ -37,13 +37,14 @@ AWS credentials must have permission to create EC2 instances, key pairs, and sec
 
 ## Configuration
 
-All variables have defaults and can be overridden on the command line or in a `terraform.tfvars` file.
+Most variables have defaults and can be overridden on the command line or in a `terraform.tfvars` file. `opa_admin_password` has no default and will be prompted interactively at `apply` time.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `aws_region` | `us-west-2` | AWS region to deploy into |
 | `instance_type` | `t2.micro` | EC2 instance type |
 | `project_name` | `opa-dae-db-gateway` | Name prefix applied to all resources |
+| `opa_admin_password` | *(prompted)* | Password for the `opa_admin` MySQL user — sensitive, never stored in state in plaintext |
 
 Example `terraform.tfvars`:
 
@@ -52,6 +53,8 @@ aws_region    = "us-east-1"
 instance_type = "t3.small"
 project_name  = "my-opa-gateway"
 ```
+
+> `opa_admin_password` should not be placed in `terraform.tfvars` to avoid committing it to source control. Supply it at the prompt or via the `TF_VAR_opa_admin_password` environment variable.
 
 ## Build and Deploy
 
@@ -106,7 +109,7 @@ cd terraform
 terraform init
 ```
 
-Downloads the `hashicorp/aws` (~> 5.0) and `hashicorp/tls` (~> 4.0) providers.
+Downloads the `hashicorp/aws` (~> 5.0), `hashicorp/tls` (~> 4.0), and `hashicorp/null` (~> 3.0) providers.
 
 ### 3. Preview the changes
 
@@ -120,16 +123,28 @@ terraform plan
 terraform apply
 ```
 
+Terraform will prompt for the `opa_admin` MySQL password before making any changes:
+
+```
+var.opa_admin_password
+  Password for the opa_admin MySQL user (prompted at apply time)
+
+  Enter a value: ********
+```
+
 Terraform will create:
 - A 4096-bit RSA key pair
 - A security group (SSH open; MySQL self-referencing only)
 - An EC2 instance running the latest Ubuntu 22.04 Jammy AMI
+- A file transfer that copies `scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb` to `/home/ubuntu/` on the instance via SSH
 
 `user_data.sh` runs automatically on first boot and:
 1. Updates the system packages
-2. Installs and starts MySQL
-3. Creates the `employee_directory` database with `employees` and `logins` tables
-4. Inserts 15 sample employee records and derives matching login credentials
+2. Sets `mysql_native_password` as the server-wide default authentication plugin
+3. Installs and starts MySQL
+4. Creates the `employee_directory` database with `employees` and `logins` tables
+5. Creates `app_user@localhost` and `opa_admin@'%'` using `mysql_native_password`
+6. Inserts 15 sample employee records and derives matching login credentials
 
 Allow 2–3 minutes after `apply` completes for `user_data.sh` to finish.
 
@@ -164,6 +179,16 @@ sudo mysql -u root -e "
   FROM employee_directory.logins l
   JOIN employee_directory.employees e ON l.employee_id = e.id
   LIMIT 5;"
+
+# Confirm both users were created with mysql_native_password
+sudo mysql -u root -e "
+  SELECT user, host, plugin
+  FROM mysql.user
+  WHERE user IN ('app_user', 'opa_admin');"
+# Expected: both rows show mysql_native_password
+
+# Confirm the .deb package was delivered
+ls -lh ~/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb
 ```
 
 ### 7. Check provisioning logs
@@ -193,12 +218,10 @@ The OPA agent requires a tenant-specific enrollment token that can only be obtai
 2. Select or create a Server Group for this instance.
 3. Generate an enrollment token for the group.
 4. SSH into the instance (see step 5 above).
-5. Install the OPA server agent (refer to current [Okta documentation](https://help.okta.com/opa/en-us/content/topics/privileged-access/opa-main.htm) for the package URL):
+5. Install the OPA server agent. The `.deb` package is copied to `/home/ubuntu/` automatically during `terraform apply`:
 
    ```bash
-   curl -fsSL https://packages.okta.com/okta-advanced-server-access/amd64/<package> \
-     -o /tmp/okta-sftd.deb
-   sudo dpkg -i /tmp/okta-sftd.deb
+   sudo dpkg -i ~/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb
    ```
 
 6. Enroll the agent:
@@ -244,7 +267,12 @@ Once enrolled, the instance will appear in the OPA dashboard and database sessio
 | `created_at` | TIMESTAMP | |
 | `updated_at` | TIMESTAMP | Auto-updated |
 
-The application user `app_user@localhost` has SELECT, INSERT, UPDATE, DELETE on `employee_directory.*`.
+Both MySQL users are created with `mysql_native_password` for OPA gateway compatibility:
+
+| User | Host | Privileges |
+|------|------|------------|
+| `app_user` | `localhost` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
+| `opa_admin` | `%` | ALL PRIVILEGES on `employee_directory.*` — used by the OPA agent |
 
 ## Teardown
 
