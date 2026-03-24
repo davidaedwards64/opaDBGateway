@@ -34,4 +34,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'app_user'@'loca
 -- Replace <opa_admin_password> with the actual password before running locally
 CREATE USER IF NOT EXISTS 'opa_admin'@'%' IDENTIFIED WITH mysql_native_password BY '<opa_admin_password>';
 GRANT ALL PRIVILEGES ON employee_directory.* TO 'opa_admin'@'%';
+
+-- Grant opa_admin global user-management privileges
+GRANT CREATE USER ON *.* TO 'opa_admin'@'%';
+
+-- Replace <opa_admin_password> with the actual password before running locally
+CREATE USER IF NOT EXISTS 'dbaone'@'%' IDENTIFIED WITH mysql_native_password BY '<opa_admin_password>';
+GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'dbaone'@'%';
+
+CREATE USER IF NOT EXISTS 'dbatwo'@'%' IDENTIFIED WITH mysql_native_password BY '<opa_admin_password>';
+GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'dbatwo'@'%';
 FLUSH PRIVILEGES;
