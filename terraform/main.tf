@@ -90,9 +90,12 @@ resource "null_resource" "copy_gateway_deb" {
     host        = aws_instance.opa_db_gateway.public_ip
   }
 
-  # Wait for SSH to be ready
+  # Wait for SSH, then wait for user_data.sh to finish before touching dpkg
   provisioner "remote-exec" {
-    inline = ["echo 'SSH ready'"]
+    inline = [
+      "echo 'SSH ready'",
+      "sudo cloud-init status --wait",
+    ]
   }
 
   # Copy the gateway .deb package
