@@ -57,10 +57,7 @@ CREATE USER IF NOT EXISTS 'app_user'@'localhost' IDENTIFIED WITH mysql_native_pa
 GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'app_user'@'localhost';
 
 CREATE USER IF NOT EXISTS 'opa_admin'@'%' IDENTIFIED WITH mysql_native_password BY '${opa_admin_password}';
-GRANT ALL PRIVILEGES ON employee_directory.* TO 'opa_admin'@'%';
-
--- Grant opa_admin global user-management privileges
-GRANT CREATE USER ON *.* TO 'opa_admin'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'opa_admin'@'%' WITH GRANT OPTION;
 
 -- DBA users (same password as opa_admin, access to employee_directory)
 CREATE USER IF NOT EXISTS 'dbaone'@'%' IDENTIFIED WITH mysql_native_password BY '${opa_admin_password}';

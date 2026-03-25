@@ -204,7 +204,7 @@ sudo mysql -u root -e "
 
 # Confirm opa_admin has global CREATE USER privilege
 sudo mysql -u root -e "SHOW GRANTS FOR 'opa_admin'@'%';"
-# Expected: includes GRANT CREATE USER ON *.* and GRANT ALL ON employee_directory.*
+# Expected: includes GRANT ALL PRIVILEGES ON *.* WITH GRANT OPTION
 
 # Confirm dbaone and dbatwo grants
 sudo mysql -u root -e "SHOW GRANTS FOR 'dbaone'@'%'; SHOW GRANTS FOR 'dbatwo'@'%';"
@@ -311,7 +311,7 @@ All MySQL users are created with `mysql_native_password` for OPA gateway compati
 | User | Host | Privileges |
 |------|------|------------|
 | `app_user` | `localhost` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
-| `opa_admin` | `%` | ALL PRIVILEGES on `employee_directory.*`; CREATE USER on `*.*` — used by the OPA agent |
+| `opa_admin` | `%` | ALL PRIVILEGES on `*.*` WITH GRANT OPTION (superadmin) — used by the OPA agent |
 | `dbaone` | `%` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
 | `dbatwo` | `%` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
 
