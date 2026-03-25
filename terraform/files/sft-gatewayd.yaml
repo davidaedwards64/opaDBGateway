@@ -7,12 +7,8 @@ LogLevel: debug
 TLSUseBundledCAs: true
 # RDP Support
 RDP:
-  Enabled: false
-  DangerouslyIgnoreServerCertificates: false
-  MaximumActiveSessions: 20
-  VerboseLogging: true
+Enabled: false
 # Orchestrator
 Orchestrator:
   Enabled: true
   BinaryPath: /usr/sbin/sft-orchestrator
-  DryRun: false
