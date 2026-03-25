@@ -41,4 +41,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'dbaone'@'%';
 
 CREATE USER IF NOT EXISTS 'dbatwo'@'%' IDENTIFIED WITH mysql_native_password BY '<opa_admin_password>';
 GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'dbatwo'@'%';
+
+-- Require SSL for all remote users
+ALTER USER 'opa_admin'@'%' REQUIRE SSL;
+ALTER USER 'dbaone'@'%' REQUIRE SSL;
+ALTER USER 'dbatwo'@'%' REQUIRE SSL;
 FLUSH PRIVILEGES;

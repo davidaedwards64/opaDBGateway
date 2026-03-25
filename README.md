@@ -155,11 +155,13 @@ After the instance is reachable over SSH, Terraform will automatically:
 `user_data.sh` runs on first boot and:
 1. Updates the system packages
 2. Sets `mysql_native_password` as the server-wide default authentication plugin
-3. Installs and starts MySQL
-4. Creates the `employee_directory` database with `employees` and `logins` tables
-5. Creates `app_user@localhost`, `opa_admin@'%'`, `dbaone@'%'`, and `dbatwo@'%'` using `mysql_native_password`
-6. Grants `opa_admin` global `CREATE USER` privilege (required for OPA user management)
-7. Inserts 15 sample employee records and derives matching login credentials
+3. Generates a self-signed CA and server certificate in `/etc/mysql/ssl/`
+4. Configures MySQL to use the certificates and sets `require_secure_transport=ON`
+5. Installs and starts MySQL
+6. Creates the `employee_directory` database with `employees` and `logins` tables
+7. Creates `app_user@localhost`, `opa_admin@'%'`, `dbaone@'%'`, and `dbatwo@'%'` using `mysql_native_password`
+8. Requires SSL for all three remote (`%`) users
+9. Inserts 15 sample employee records and derives matching login credentials
 
 Allow 2–3 minutes after `apply` completes for `user_data.sh` to finish.
 
@@ -209,6 +211,21 @@ sudo mysql -u root -e "SHOW GRANTS FOR 'opa_admin'@'%';"
 # Confirm dbaone and dbatwo grants
 sudo mysql -u root -e "SHOW GRANTS FOR 'dbaone'@'%'; SHOW GRANTS FOR 'dbatwo'@'%';"
 # Expected: SELECT, INSERT, UPDATE, DELETE on employee_directory.*
+
+# Confirm SSL is active on the server
+sudo mysql -u root -e "SHOW VARIABLES LIKE '%ssl%';"
+# Expected: have_ssl = YES, require_secure_transport = ON
+
+# Confirm SSL cert files are in place
+sudo ls -lh /etc/mysql/ssl/
+# Expected: ca-cert.pem, ca-key.pem, server-cert.pem, server-key.pem
+
+# Confirm SSL is required for remote users
+sudo mysql -u root -e "
+  SELECT user, host, ssl_type
+  FROM mysql.user
+  WHERE user IN ('opa_admin', 'dbaone', 'dbatwo');"
+# Expected: ssl_type = ANY for all three
 
 # Confirm the gateway package was installed
 dpkg -l | grep scaleft-gateway
@@ -265,12 +282,12 @@ sudo tail -f /var/log/user_data.log
 
 All MySQL users are created with `mysql_native_password` for OPA gateway compatibility:
 
-| User | Host | Privileges |
-|------|------|------------|
-| `app_user` | `localhost` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
-| `opa_admin` | `%` | ALL PRIVILEGES on `*.*` WITH GRANT OPTION (superadmin) — used by the OPA agent |
-| `dbaone` | `%` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
-| `dbatwo` | `%` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` |
+| User | Host | Privileges | SSL |
+|------|------|------------|-----|
+| `app_user` | `localhost` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` | Not required (local socket) |
+| `opa_admin` | `%` | ALL PRIVILEGES on `*.*` WITH GRANT OPTION (superadmin) — used by the OPA agent | Required |
+| `dbaone` | `%` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` | Required |
+| `dbatwo` | `%` | SELECT, INSERT, UPDATE, DELETE on `employee_directory.*` | Required |
 
 ## Teardown
 

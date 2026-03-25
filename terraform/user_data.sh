@@ -17,6 +17,43 @@ apt-get install -y mysql-server
 echo "default_authentication_plugin=mysql_native_password" \
   >> /etc/mysql/mysql.conf.d/mysqld.cnf
 
+# ── Generate SSL certificates for MySQL ──────────────────────────────────────
+mkdir -p /etc/mysql/ssl
+
+# CA key and self-signed certificate (10-year validity)
+openssl genrsa -out /etc/mysql/ssl/ca-key.pem 2048
+openssl req -new -x509 -nodes -days 3650 \
+  -key /etc/mysql/ssl/ca-key.pem \
+  -out /etc/mysql/ssl/ca-cert.pem \
+  -subj "/CN=MySQL-CA"
+
+# Server key and certificate signed by the CA
+openssl genrsa -out /etc/mysql/ssl/server-key.pem 2048
+openssl req -new -nodes \
+  -key /etc/mysql/ssl/server-key.pem \
+  -out /etc/mysql/ssl/server-req.pem \
+  -subj "/CN=MySQL-Server"
+openssl x509 -req -days 3650 \
+  -in /etc/mysql/ssl/server-req.pem \
+  -CA /etc/mysql/ssl/ca-cert.pem \
+  -CAkey /etc/mysql/ssl/ca-key.pem \
+  -CAcreateserial \
+  -out /etc/mysql/ssl/server-cert.pem
+
+# Secure permissions — mysql process must be able to read certs, not keys
+chown -R mysql:mysql /etc/mysql/ssl
+chmod 750 /etc/mysql/ssl
+chmod 640 /etc/mysql/ssl/ca-cert.pem /etc/mysql/ssl/server-cert.pem
+chmod 600 /etc/mysql/ssl/ca-key.pem /etc/mysql/ssl/server-key.pem
+
+# Add SSL paths and enforce encrypted transport in MySQL config
+cat >> /etc/mysql/mysql.conf.d/mysqld.cnf <<'MYSQLCONF'
+ssl-ca=/etc/mysql/ssl/ca-cert.pem
+ssl-cert=/etc/mysql/ssl/server-cert.pem
+ssl-key=/etc/mysql/ssl/server-key.pem
+require_secure_transport=ON
+MYSQLCONF
+
 # ── Start and enable MySQL ────────────────────────────────────────────────────
 systemctl start mysql
 systemctl enable mysql
@@ -65,6 +102,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'dbaone'@'%';
 
 CREATE USER IF NOT EXISTS 'dbatwo'@'%' IDENTIFIED WITH mysql_native_password BY '${opa_admin_password}';
 GRANT SELECT, INSERT, UPDATE, DELETE ON employee_directory.* TO 'dbatwo'@'%';
+
+-- Require SSL for all remote users
+ALTER USER 'opa_admin'@'%' REQUIRE SSL;
+ALTER USER 'dbaone'@'%' REQUIRE SSL;
+ALTER USER 'dbatwo'@'%' REQUIRE SSL;
 FLUSH PRIVILEGES;
 SQL
 
