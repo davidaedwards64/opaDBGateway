@@ -140,7 +140,7 @@ var.setup_token
   Enter a value: ********
 ```
 
-Obtain the gateway setup token from the Okta admin console before running `apply` — see [OPA Server Agent Enrollment](#opa-server-agent-enrollment) below for the full steps.
+Obtain the gateway setup token from the Okta admin console (**Resource Administration > Gateways > Set up gateway > Create setup token**) before running `apply`. The token is only shown once.
 
 Terraform will create:
 - A 4096-bit RSA key pair
@@ -234,49 +234,6 @@ sudo tail -f /var/log/user_data.log
 | `instance_id` | EC2 instance ID |
 | `ssh_private_key` | Generated private key (sensitive) |
 | `ssh_connection_command` | Ready-to-use SSH command |
-
-## OPA Server Agent Enrollment
-
-`terraform apply` fully automates the gateway installation and configuration:
-
-- The gateway package is installed via `dpkg`
-- `sft-gatewayd.yaml` is placed at `/etc/sft/sft-gatewayd.yaml`
-- The setup token is written to `/var/lib/sft-gatewayd/setup.token`
-
-The `sft-gatewayd` service reads the token file on start and uses it to enroll automatically with the Okta tenant.
-
-**Before running `terraform apply`**, generate a gateway setup token:
-
-1. Log in to the Okta admin console and navigate to **Resource Administration > Gateways**.
-2. Click **Set up gateway**, then **Create setup token**.
-3. Enter a token name.
-4. Optionally add one or more labels as key-value pairs (e.g. `environment:staging`), pressing Tab or Enter after each.
-5. Click **Save**.
-6. Copy the token and click **Done** — this is the value to supply at the `var.setup_token` prompt. It is only shown once.
-
-**After `terraform apply` completes:**
-
-1. SSH into the instance:
-
-   ```bash
-   terraform output ssh_connection_command
-   ssh -i ../ssh_key.pem ubuntu@<instance_public_ip>
-   ```
-
-2. Start the gateway service:
-
-   ```bash
-   sudo systemctl start sft-gatewayd
-   sudo systemctl enable sft-gatewayd
-   ```
-
-3. Verify the agent enrolled successfully:
-
-   ```bash
-   sudo systemctl status sft-gatewayd
-   ```
-
-Once enrolled, the instance will appear in the OPA dashboard and database sessions can be brokered through Okta Privileged Access.
 
 ## Database Schema
 
