@@ -35,7 +35,7 @@ MySQL port 3306 is not reachable from the internet — the OPA agent proxies dat
 
 AWS credentials must have permission to create EC2 instances, key pairs, and security groups.
 
-> **Gateway package:** The OPA gateway `.deb` package (`scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb`) is not stored in this repository. You must obtain it separately and place it at `terraform/files/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb` before running any Terraform commands.
+> **Gateway package:** The OPA gateway `.deb` package (`scaleft-gateway_1.102.0-cci7-g53653ba29~jammy_amd64.deb`) is not stored in this repository. You must obtain it separately and place it at `terraform/files/scaleft-gateway_1.102.0-cci7-g53653ba29~jammy_amd64.deb` before running any Terraform commands.
 
 ## Configuration
 
