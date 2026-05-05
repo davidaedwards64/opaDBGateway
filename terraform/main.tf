@@ -100,13 +100,13 @@ resource "null_resource" "copy_gateway_deb" {
 
   # Copy the gateway .deb package
   provisioner "file" {
-    source      = "${path.module}/files/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb"
-    destination = "/home/ubuntu/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb"
+    source      = "${path.module}/files/scaleft-gateway_1.102.0-cci7-g53653ba29~jammy_amd64.deb"
+    destination = "/home/ubuntu/scaleft-gateway_1.102.0-cci7-g53653ba29~jammy_amd64.deb"
   }
 
   # Install the gateway package
   provisioner "remote-exec" {
-    inline = ["sudo dpkg -i /home/ubuntu/scaleft-gateway_1.100.0-cci317-g2762eae45~jammy_amd64.deb"]
+    inline = ["sudo dpkg -i /home/ubuntu/scaleft-gateway_1.102.0-cci7-g53653ba29~jammy_amd64.deb"]
   }
 
   # Stage gateway config and setup token (file provisioner runs as ubuntu;
